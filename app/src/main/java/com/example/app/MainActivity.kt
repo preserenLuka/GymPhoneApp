@@ -34,6 +34,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.app.ui.theme.AppTheme
 import com.example.app.ui.theme.BluePrimary
+import com.example.app.ui.settings.SettingsScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -76,18 +77,18 @@ fun MainScaffold() {
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         bottomBar = {
-            // KEEP your original vertical sizing: 108.dp tall box
+            // KEEP your original vertical sizing: 108–128dp tall outer box
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(128.dp)
             ) {
-                // Replace NavigationBar with custom bar to control width/spacing
+                // Custom bar to control width/spacing
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
-                        .height(108.dp) // similar to default nav bar height
+                        .height(108.dp)
                         .clip(
                             RoundedCornerShape(
                                 topStart = 18.dp,
@@ -99,7 +100,7 @@ fun MainScaffold() {
                     Row(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(horizontal = 12.dp), // 12dp side padding like Figma
+                            .padding(horizontal = 12.dp), // side padding like Figma
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         // 5 slots: each one 74dp wide
@@ -136,18 +137,16 @@ fun MainScaffold() {
                     }
                 }
 
-                // FAB stays at same vertical position as before (TopCenter),
-                // now with correct size and border.
+                // FAB – 63dp circle with 2dp dark border
                 FloatingActionButton(
                     onClick = { /* TODO: open Add flow */ },
                     modifier = Modifier
                         .align(Alignment.TopCenter)
-                        .size(63.dp),          // EXACT circle size
+                        .size(63.dp),
                     shape = CircleShape,
                     containerColor = BluePrimary,
                     contentColor = Color.White
                 ) {
-                    // 2dp border same color as bar
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -170,7 +169,7 @@ fun MainScaffold() {
                 BottomDestination.HOME -> HomeScreen()
                 BottomDestination.LIBRARY -> LibraryScreen()
                 BottomDestination.STATS -> StatsScreen()
-                BottomDestination.SETTINGS -> SettingsScreen()
+                BottomDestination.SETTINGS -> SettingsScreen()   // IMPORT from ui.settings
             }
         }
     }
@@ -237,11 +236,6 @@ fun LibraryScreen() {
 @Composable
 fun StatsScreen() {
     Text("Stats screen")
-}
-
-@Composable
-fun SettingsScreen() {
-    Text("Settings screen")
 }
 
 @Preview(showBackground = true)
