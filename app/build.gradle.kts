@@ -64,6 +64,7 @@ dependencies {
 
     // ✅ JSON Serialization Runtime (REQUIRED)
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+    implementation(libs.androidx.compose.foundation.layout)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

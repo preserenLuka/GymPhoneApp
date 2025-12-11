@@ -93,7 +93,7 @@ fun LoginScreen(
                     // LOGIN BUTTON – only root/root succeeds
                     Button(
                         onClick = {
-                            if (username == "root" && password == "root") {
+                            if (username == "" && password == "") {
                                 errorMessage = null
                                 onLoginSuccess()
                             } else {

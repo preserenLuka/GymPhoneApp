@@ -1,16 +1,15 @@
 package com.example.app.home
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material3.*
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -23,17 +22,27 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.app.ui.theme.BluePrimary
 import com.example.app.ui.theme.YellowAccent
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun HomeScreen() {
+fun HomeScreen(onSeeStatsClick: () -> Unit) {
     val colors = MaterialTheme.colorScheme
 
     // STATE
-    var selectedDayIndex by rememberSaveable { mutableStateOf(0) }          // which weekday is active
     var isWorkoutStarted by rememberSaveable { mutableStateOf(false) }      // workout started?
     var popupType by rememberSaveable { mutableStateOf<PopupType?>(null) }  // current popup, null = none
 
     val isPopupVisible = popupType != null
+
+    // Today label (e.g. "11. december")
+    val todayLabel = remember {
+        LocalDate.now().format(
+            DateTimeFormatter.ofPattern("d. MMMM", Locale("sl"))
+        )
+    }
 
     Box(
         modifier = Modifier
@@ -51,10 +60,8 @@ fun HomeScreen() {
                 .padding(horizontal = 16.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            WeekCalendarCard(
-                selectedIndex = selectedDayIndex,
-                onDaySelected = { selectedDayIndex = it }
-            )
+            TodayDateCard(dateLabel = todayLabel)
+
             TodayWorkoutCard(
                 isStarted = isWorkoutStarted,
                 onStart = { isWorkoutStarted = true },
@@ -118,6 +125,32 @@ private fun SmartCard(
         )
     }
 }
+
+/* ---------- Small date card (full-width, subtle, centered) ---------- */
+
+@Composable
+private fun TodayDateCard(
+    dateLabel: String
+) {
+    SmartCard(
+        modifier = Modifier
+            .fillMaxWidth()
+    ) {
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = dateLabel,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontWeight = FontWeight.Normal
+                ),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+            )
+        }
+    }
+}
+
 
 /* ---------- POPUP CARD ---------- */
 
@@ -204,67 +237,6 @@ private fun PopupCard(
                 }
             }
         }
-    }
-}
-
-/* ---------- Card 1: Week calendar ---------- */
-
-@Composable
-private fun WeekCalendarCard(
-    selectedIndex: Int,
-    onDaySelected: (Int) -> Unit
-) {
-    SmartCard(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Text(
-            text = "Monday, 24 Nov",
-            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
-            color = MaterialTheme.colorScheme.onSurface
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Row(
-            horizontalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            val days = listOf("M", "T", "W", "T", "F", "S", "S")
-            days.forEachIndexed { index, label ->
-                DayCircle(
-                    label = label,
-                    selected = index == selectedIndex,
-                    onClick = { onDaySelected(index) }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun DayCircle(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit
-) {
-    val colors = MaterialTheme.colorScheme
-
-    Box(
-        modifier = Modifier
-            .size(32.dp)
-            .clip(CircleShape)
-            .background(
-                if (selected) BluePrimary
-                else colors.surfaceVariant
-            )
-            .clickable { onClick() },
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = if (selected) colors.onPrimary else colors.onSurface
-        )
     }
 }
 

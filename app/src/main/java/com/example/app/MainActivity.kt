@@ -7,54 +7,58 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Fastfood
+import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.example.app.ui.theme.AppTheme
-import com.example.app.ui.theme.ThemeOption
-import com.example.app.settings.SettingsScreen
+import androidx.compose.ui.tooling.preview.Preview
 import com.example.app.home.HomeScreen
 import com.example.app.library.LibraryScreen
+import com.example.app.library.LibraryQuickAddTarget
 import com.example.app.stats.StatsScreen
+import com.example.app.settings.SettingsScreen
+import com.example.app.ui.theme.AppTheme
+import com.example.app.ui.theme.NeutralDark
+import com.example.app.ui.theme.PureWhite
+import com.example.app.ui.theme.ThemeOption
+import com.example.app.ui.theme.BluePrimary
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
         setContent {
-            // Global app state
-            var currentTheme by rememberSaveable { mutableStateOf(ThemeOption.LIGHT) }
             var isLoggedIn by rememberSaveable { mutableStateOf(false) }
+            var currentTheme by rememberSaveable { mutableStateOf(ThemeOption.LIGHT) }
 
             AppTheme(themeOption = currentTheme, dynamicColor = false) {
                 if (!isLoggedIn) {
-                    LoginScreen(
-                        onLoginSuccess = { isLoggedIn = true }
-                    )
+                    LoginScreen(onLoginSuccess = { isLoggedIn = true })
                 } else {
                     MainScaffold(
                         currentTheme = currentTheme,
-                        onThemeChange = { newTheme -> currentTheme = newTheme },
-                        onLogout = { isLoggedIn = false } // samo nazaj na login
+                        onThemeChange = { currentTheme = it },
+                        onLogout = { isLoggedIn = false }
                     )
                 }
             }
@@ -62,174 +66,358 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-/**
- * Main scaffold with rounded dark bar and center circular "+" FAB.
- */
+enum class BottomDestination(val label: String) {
+    HOME("Home"),
+    LIBRARY("Library"),
+    STATS("Stats"),
+    SETTINGS("Settings")
+}
+
 @Composable
 fun MainScaffold(
     currentTheme: ThemeOption,
     onThemeChange: (ThemeOption) -> Unit,
     onLogout: () -> Unit
 ) {
+    val colors = MaterialTheme.colorScheme
+
     var currentDestination by rememberSaveable { mutableStateOf(BottomDestination.HOME) }
 
-    val colorScheme = MaterialTheme.colorScheme
+    // Shared local "library data" – used by LibraryScreen AND popup counts
+    val recipeTemplates = remember { mutableStateListOf("Push day template", "Leg day + core") }
+    val nutritionSets = remember { mutableStateListOf("Clean bulk day", "Rest day deficit") }
+    val scheduleSets = remember { mutableStateListOf("Week A", "Week B") }
 
-    // Bottom bar barva glede na temo
-    val barColor = when (currentTheme) {
-        ThemeOption.LIGHT -> Color(0xFF2A2A2A)
-        ThemeOption.DARK -> Color(0xFF1A1A1A)
-        ThemeOption.NIGHT_BLUE -> Color(0xFF050B16)   // nočna modra
-        ThemeOption.JADE_GREEN -> Color(0xFF031813)   // temno jade ozadje
-    }
-
-    val fabColor = colorScheme.primary
+    // Global + popup state
+    var showAddMenu by rememberSaveable { mutableStateOf(false) }
+    var quickAddTarget by rememberSaveable { mutableStateOf<LibraryQuickAddTarget?>(null) }
 
     Scaffold(
-        modifier = Modifier.fillMaxSize(),
+        containerColor = colors.background,
         bottomBar = {
-
-            // Bottom bar height is smaller now, FAB sits inside it.
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(88.dp) // PERFECT height for all items including FAB
-            ) {
-
-                // Actual bar background
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .fillMaxWidth()
-                        .height(88.dp)
-                        .clip(
-                            RoundedCornerShape(
-                                topStart = 18.dp,
-                                topEnd = 18.dp
-                            )
-                        )
-                        .background(barColor)
-                ) {
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        BottomBarItem(
-                            destination = BottomDestination.HOME,
-                            selected = currentDestination == BottomDestination.HOME,
-                            onClick = { currentDestination = BottomDestination.HOME }
-                        )
-
-                        BottomBarItem(
-                            destination = BottomDestination.LIBRARY,
-                            selected = currentDestination == BottomDestination.LIBRARY,
-                            onClick = { currentDestination = BottomDestination.LIBRARY }
-                        )
-
-                        // Center FAB slot (same width as others)
-                        Box(
-                            modifier = Modifier
-                                .width(74.dp)
-                                .fillMaxHeight(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            FloatingActionButton(
-                                onClick = { /* TODO */ },
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .offset(y = (-11).dp),   // <-- PERFECT ALIGNMENT FIX
-                                shape = CircleShape,
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                contentColor = Color.White
-                            ) {
-                                Icon(Icons.Filled.Add, contentDescription = "Add")
-                            }
-                        }
-
-                        BottomBarItem(
-                            destination = BottomDestination.STATS,
-                            selected = currentDestination == BottomDestination.STATS,
-                            onClick = { currentDestination = BottomDestination.STATS }
-                        )
-
-                        BottomBarItem(
-                            destination = BottomDestination.SETTINGS,
-                            selected = currentDestination == BottomDestination.SETTINGS,
-                            onClick = { currentDestination = BottomDestination.SETTINGS }
-                        )
-                    }
-                }
-            }
+            BottomNavBar(
+                currentDestination = currentDestination,
+                onDestinationSelected = { currentDestination = it },
+                onFabClick = { showAddMenu = true }
+            )
         }
-
     ) { innerPadding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding),
-            contentAlignment = Alignment.Center
+                .padding(innerPadding)
         ) {
             when (currentDestination) {
-                BottomDestination.HOME -> HomeScreen()
-                BottomDestination.LIBRARY -> LibraryScreen()
-                BottomDestination.STATS -> StatsScreen()
-                BottomDestination.SETTINGS -> SettingsScreen(
-                    currentTheme = currentTheme,
-                    onThemeChange = onThemeChange,
-                    onLogoutClick = onLogout
+                BottomDestination.HOME -> {
+                    HomeScreen(
+                        onSeeStatsClick = {
+                            currentDestination = BottomDestination.STATS
+                        }
+                    )
+                }
+
+                BottomDestination.LIBRARY -> {
+                    LibraryScreen(
+                        recipeTemplates = recipeTemplates,
+                        nutritionSets = nutritionSets,
+                        scheduleSets = scheduleSets,
+                        quickAddTarget = quickAddTarget,
+                        onQuickAddHandled = { quickAddTarget = null }
+                    )
+                }
+
+                BottomDestination.STATS -> {
+                    StatsScreen()
+                }
+
+                BottomDestination.SETTINGS -> {
+                    SettingsScreen(
+                        currentTheme = currentTheme,
+                        onThemeChange = onThemeChange,
+                        onLogoutClick = onLogout
+                    )
+                }
+            }
+
+            // GLOBAL ADD POPUP (overlays everything, anchored from +)
+            if (showAddMenu) {
+                AddNewPopup(
+                    exerciseCount = 124, // visual only; exercises come from API
+                    recipeCount = recipeTemplates.size,
+                    nutritionCount = nutritionSets.size,
+                    scheduleCount = scheduleSets.size,
+                    onAddExercise = {
+                        quickAddTarget = LibraryQuickAddTarget.EXERCISES
+                        currentDestination = BottomDestination.LIBRARY
+                        showAddMenu = false
+                    },
+                    onAddRecipes = {
+                        quickAddTarget = LibraryQuickAddTarget.RECIPES
+                        currentDestination = BottomDestination.LIBRARY
+                        showAddMenu = false
+                    },
+                    onAddNutrition = {
+                        quickAddTarget = LibraryQuickAddTarget.NUTRITION
+                        currentDestination = BottomDestination.LIBRARY
+                        showAddMenu = false
+                    },
+                    onAddSchedule = {
+                        quickAddTarget = LibraryQuickAddTarget.SCHEDULE
+                        currentDestination = BottomDestination.LIBRARY
+                        showAddMenu = false
+                    },
+                    onDismiss = { showAddMenu = false }
                 )
             }
         }
     }
 }
 
-/**
- * One bottom bar item. Icon + text in a 74dp-wide box.
- */
 @Composable
-fun BottomBarItem(
-    destination: BottomDestination,
-    selected: Boolean,
-    onClick: () -> Unit
+private fun BottomNavBar(
+    currentDestination: BottomDestination,
+    onDestinationSelected: (BottomDestination) -> Unit,
+    onFabClick: () -> Unit
 ) {
-    val primary = MaterialTheme.colorScheme.primary
-
     Box(
         modifier = Modifier
-            .width(74.dp)
-            .height(66.dp)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center
+            .fillMaxWidth()
+            .height(108.dp)          // whole bottom area (same as bar)
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally
+        // Dark rounded bar at the bottom
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .height(108.dp)
+                .clip(RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp))
+                .background(NeutralDark)
         ) {
-            Icon(
-                imageVector = destination.icon,
-                contentDescription = destination.label,
-                tint = if (selected) primary else Color.White
-            )
-            Text(
-                text = destination.label,
-                color = if (selected) primary else Color.White
-            )
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    // more padding at the BOTTOM than at the TOP -> content sits higher
+                    .padding(start = 12.dp, end = 12.dp, top = 2.dp, bottom = 23.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                BottomBarItem(
+                    icon = Icons.Filled.Home,
+                    label = BottomDestination.HOME.label,
+                    isSelected = currentDestination == BottomDestination.HOME,
+                    onClick = { onDestinationSelected(BottomDestination.HOME) }
+                )
+
+                BottomBarItem(
+                    icon = Icons.Filled.List,
+                    label = BottomDestination.LIBRARY.label,
+                    isSelected = currentDestination == BottomDestination.LIBRARY,
+                    onClick = { onDestinationSelected(BottomDestination.LIBRARY) }
+                )
+
+                // Center slot with inline FAB
+                Box(
+                    modifier = Modifier
+                        .width(74.dp)
+                        .height(66.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(60.dp)
+                            .clip(CircleShape)
+                            .background(BluePrimary)
+                            .clickable { onFabClick() },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Add,
+                            contentDescription = "Add",
+                            tint = PureWhite
+                        )
+                    }
+                }
+
+                BottomBarItem(
+                    icon = Icons.AutoMirrored.Filled.ShowChart,
+                    label = BottomDestination.STATS.label,
+                    isSelected = currentDestination == BottomDestination.STATS,
+                    onClick = { onDestinationSelected(BottomDestination.STATS) }
+                )
+
+                BottomBarItem(
+                    icon = Icons.Filled.Settings,
+                    label = BottomDestination.SETTINGS.label,
+                    isSelected = currentDestination == BottomDestination.SETTINGS,
+                    onClick = { onDestinationSelected(BottomDestination.SETTINGS) }
+                )
+            }
         }
     }
 }
 
-enum class BottomDestination(
-    val label: String,
-    val icon: ImageVector,
+
+
+@Composable
+private fun BottomBarItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
 ) {
-    HOME("Home", Icons.Filled.Home),
-    LIBRARY("Library", Icons.Filled.List),
-    STATS("Stats", Icons.Filled.ShowChart),
-    SETTINGS("Settings", Icons.Filled.Settings),
+    val colors = MaterialTheme.colorScheme
+    val contentColor = if (isSelected) BluePrimary else Color.White
+
+    Column(
+        modifier = Modifier
+            .width(74.dp)
+            .height(66.dp)
+            .clickable { onClick() },
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = label,
+            tint = contentColor
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = contentColor
+        )
+    }
 }
 
+@Composable
+private fun AddNewPopup(
+    exerciseCount: Int,
+    recipeCount: Int,
+    nutritionCount: Int,
+    scheduleCount: Int,
+    onAddExercise: () -> Unit,
+    onAddRecipes: () -> Unit,
+    onAddNutrition: () -> Unit,
+    onAddSchedule: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val colors = MaterialTheme.colorScheme
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.35f))
+            .clickable(onClick = onDismiss, indication = null, interactionSource = remember { MutableInteractionSource() })
+    ) {
+        // Card panel floating above bottom bar (not even half screen)
+        Card(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(horizontal = 20.dp, vertical = 24.dp),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = colors.surface),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 18.dp)
+            ) {
+                Text(
+                    text = "Add new",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = colors.onSurface
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+
+                AddNewCategoryCard(
+                    title = "Exercise",
+                    countLabel = "$exerciseCount entries",
+                    icon = Icons.Filled.FitnessCenter,
+                    backgroundColor = Color(0xFF8FC5FF),
+                    onClick = onAddExercise
+                )
+                AddNewCategoryCard(
+                    title = "Recipes",
+                    countLabel = "$recipeCount templates",
+                    icon = Icons.Filled.MenuBook,
+                    backgroundColor = Color(0xFFB79CFF),
+                    onClick = onAddRecipes
+                )
+                AddNewCategoryCard(
+                    title = "Nutrition",
+                    countLabel = "$nutritionCount daily sets",
+                    icon = Icons.Filled.Fastfood,
+                    backgroundColor = Color(0xFF8FE8C0),
+                    onClick = onAddNutrition
+                )
+                AddNewCategoryCard(
+                    title = "Schedule",
+                    countLabel = "$scheduleCount sets",
+                    icon = Icons.Filled.CalendarMonth,
+                    backgroundColor = Color(0xFFF5B06A),
+                    onClick = onAddSchedule
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AddNewCategoryCard(
+    title: String,
+    countLabel: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    backgroundColor: Color,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(68.dp)
+            .padding(vertical = 4.dp)
+            .clickable { onClick() },
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = backgroundColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = title,
+                    tint = Color.Black
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleSmall,
+                        color = Color.Black
+                    )
+                    Text(
+                        text = countLabel,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Color.Black.copy(alpha = 0.8f)
+                    )
+                }
+            }
+
+            Text(
+                text = "Add new",
+                style = MaterialTheme.typography.labelLarge,
+                color = Color.Black
+            )
+        }
+    }
+}
 
 @Preview(showBackground = true)
 @Composable

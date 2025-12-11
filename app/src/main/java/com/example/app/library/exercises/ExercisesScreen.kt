@@ -15,7 +15,7 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 
 @Composable
-fun ExercisesScreen() {
+fun ExercisesScreen(onBackClick: () -> Unit) {
     val vm = remember { ExercisesViewModel() }
     val scope = rememberCoroutineScope()
     val colors = MaterialTheme.colorScheme

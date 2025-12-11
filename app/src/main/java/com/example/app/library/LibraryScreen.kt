@@ -3,6 +3,7 @@ package com.example.app.library
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
@@ -17,133 +18,160 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.app.library.collection.CollectionScreen
 import com.example.app.library.exercises.ExercisesScreen
 import com.example.app.library.nutrition.NutritionLibraryScreen
 import com.example.app.library.schedule.ScheduleScreen
-import com.example.app.ui.theme.*
-
-
 
 enum class LibrarySection {
+    ROOT,
     EXERCISES,
-    COLLECTION,
+    RECIPES,
+    NUTRITION,
+    SCHEDULE
+}
+
+enum class LibraryQuickAddTarget {
+    EXERCISES,
+    RECIPES,
     NUTRITION,
     SCHEDULE
 }
 
 @Composable
-fun LibraryScreen() {
+fun LibraryScreen(
+    recipeTemplates: MutableList<String>,
+    nutritionSets: MutableList<String>,
+    scheduleSets: MutableList<String>,
+    quickAddTarget: LibraryQuickAddTarget?,
+    onQuickAddHandled: () -> Unit
+) {
     val colors = MaterialTheme.colorScheme
-    var currentSection by rememberSaveable { mutableStateOf<LibrarySection?>(null) }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(colors.background)
-    ) {
-        when (currentSection) {
-            null -> LibraryOverview(
-                onSectionClick = { currentSection = it }
+    var section by rememberSaveable { mutableStateOf(LibrarySection.ROOT) }
+
+    // React to quickAddTarget coming from the global + popup
+    LaunchedEffect(quickAddTarget) {
+        if (quickAddTarget != null) {
+            section = when (quickAddTarget) {
+                LibraryQuickAddTarget.EXERCISES -> LibrarySection.EXERCISES
+                LibraryQuickAddTarget.RECIPES -> LibrarySection.RECIPES
+                LibraryQuickAddTarget.NUTRITION -> LibrarySection.NUTRITION
+                LibraryQuickAddTarget.SCHEDULE -> LibrarySection.SCHEDULE
+            }
+            onQuickAddHandled()
+        }
+    }
+
+    when (section) {
+        LibrarySection.ROOT -> {
+            LibraryRootScreen(
+                recipeCount = recipeTemplates.size,
+                nutritionCount = nutritionSets.size,
+                scheduleCount = scheduleSets.size,
+                onOpenExercises = { section = LibrarySection.EXERCISES },
+                onOpenRecipes = { section = LibrarySection.RECIPES },
+                onOpenNutrition = { section = LibrarySection.NUTRITION },
+                onOpenSchedule = { section = LibrarySection.SCHEDULE }
             )
+        }
 
-            LibrarySection.EXERCISES -> SectionContainer(
-                title = "Exercises",
-                onBack = { currentSection = null }
-            ) { ExercisesScreen() }
+        LibrarySection.EXERCISES -> {
+            ExercisesScreen(
+                onBackClick = { section = LibrarySection.ROOT }
+            )
+        }
 
-            LibrarySection.COLLECTION -> SectionContainer(
-                title = "Collection",
-                onBack = { currentSection = null }
-            ) { CollectionScreen() }
+        LibrarySection.RECIPES -> {
+            CollectionScreen(
+                items = recipeTemplates,
+                onBackClick = { section = LibrarySection.ROOT }
+            )
+        }
 
-            LibrarySection.NUTRITION -> SectionContainer(
-                title = "Nutrition",
-                onBack = { currentSection = null }
-            ) { NutritionLibraryScreen() }
+        LibrarySection.NUTRITION -> {
+            NutritionLibraryScreen(
+                items = nutritionSets,
+                onBackClick = { section = LibrarySection.ROOT }
+            )
+        }
 
-            LibrarySection.SCHEDULE -> SectionContainer(
-                title = "Schedule",
-                onBack = { currentSection = null }
-            ) { ScheduleScreen() }
+        LibrarySection.SCHEDULE -> {
+            ScheduleScreen(
+                items = scheduleSets,
+                onBackClick = { section = LibrarySection.ROOT }
+            )
         }
     }
 }
 
-/* ---------- Overview with 4 cards filling height ---------- */
-
 @Composable
-private fun LibraryOverview(
-    onSectionClick: (LibrarySection) -> Unit
+private fun LibraryRootScreen(
+    recipeCount: Int,
+    nutritionCount: Int,
+    scheduleCount: Int,
+    onOpenExercises: () -> Unit,
+    onOpenRecipes: () -> Unit,
+    onOpenNutrition: () -> Unit,
+    onOpenSchedule: () -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(colors.background)
-            .padding(horizontal = 16.dp, vertical = 16.dp)
+            .padding(horizontal = 16.dp, vertical = 18.dp)
     ) {
         Text(
             text = "Library",
             style = MaterialTheme.typography.titleLarge,
             color = colors.onBackground
         )
-
         Spacer(modifier = Modifier.height(16.dp))
 
         Column(
-            modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             LibraryCard(
                 title = "Exercises",
-                subtitle = "All individual workouts,\nsearchable and filterable",
-                countLabel = "124 entries",
+                subtitle = "All individual workouts, searchable and filterable",
+                badge = "API data",
+                gradient = Brush.horizontalGradient(
+                    listOf(Color(0xFF8FC5FF), Color(0xFF4F8CFF))
+                ),
                 icon = Icons.Filled.FitnessCenter,
-                gradient = Brush.horizontalGradient(
-                    listOf(BluePrimary, BlueSecondary)
-                ),
-                modifier = Modifier.weight(1f),
-                onClick = { onSectionClick(LibrarySection.EXERCISES) }
+                onClick = onOpenExercises
             )
-
             LibraryCard(
-                title = "Collection",
-                subtitle = "Workout templates &\nday combinations",
-                countLabel = "18 templates",
-                icon = Icons.Filled.MenuBook,
+                title = "Recipes",
+                subtitle = "Workout templates & day combinations",
+                badge = "$recipeCount templates",
                 gradient = Brush.horizontalGradient(
-                    listOf(PurpleAccent, BlueSecondary)
+                    listOf(Color(0xFFB79CFF), Color(0xFF8D63FF))
                 ),
-                modifier = Modifier.weight(1f),
-                onClick = { onSectionClick(LibrarySection.COLLECTION) }
+                icon = Icons.Filled.MenuBook,
+                onClick = onOpenRecipes
             )
-
             LibraryCard(
                 title = "Nutrition",
-                subtitle = "Foods, meals, liquid\ntracking & limits",
-                countLabel = "4 daily sets",
-                icon = Icons.Filled.Restaurant,
+                subtitle = "Foods, meals, liquid tracking & limits",
+                badge = "$nutritionCount daily sets",
                 gradient = Brush.horizontalGradient(
-                    listOf(TealAccent, BlueSecondary)
+                    listOf(Color(0xFF8FE8C0), Color(0xFF46C98E))
                 ),
-                modifier = Modifier.weight(1f),
-                onClick = { onSectionClick(LibrarySection.NUTRITION) }
+                icon = Icons.Filled.Restaurant,
+                onClick = onOpenNutrition
             )
-
             LibraryCard(
                 title = "Schedule",
-                subtitle = "Weekly workout plan\n& daily assignments",
-                countLabel = "4 sets",
-                icon = Icons.Filled.CalendarMonth,
+                subtitle = "Weekly workout plan & daily assignments",
+                badge = "$scheduleCount sets",
                 gradient = Brush.horizontalGradient(
-                    listOf(YellowAccent, Color(0xFFFFA040))
+                    listOf(Color(0xFFF5B06A), Color(0xFFE27D3F))
                 ),
-                modifier = Modifier.weight(1f),
-                onClick = { onSectionClick(LibrarySection.SCHEDULE) }
+                icon = Icons.Filled.CalendarMonth,
+                onClick = onOpenSchedule
             )
         }
     }
@@ -153,109 +181,67 @@ private fun LibraryOverview(
 private fun LibraryCard(
     title: String,
     subtitle: String,
-    countLabel: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    badge: String,
     gradient: Brush,
-    modifier: Modifier = Modifier,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
     onClick: () -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
 
-    Box(
-        modifier = modifier
+    Card(
+        modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(24.dp))
-            .background(gradient)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .height(96.dp)
+            .clickable { onClick() },
+        shape = RoundedCornerShape(24.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxSize(),
-            verticalAlignment = Alignment.CenterVertically
+        Box(
+            modifier = Modifier
+                .background(brush = gradient)
+                .fillMaxSize()
+                .padding(horizontal = 18.dp, vertical = 14.dp)
         ) {
-            Surface(
-                modifier = Modifier
-                    .size(40.dp),
-                shape = RoundedCornerShape(12.dp),
-                color = Color.Black.copy(alpha = 0.15f)
+            Row(
+                modifier = Modifier.fillMaxSize(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = title,
-                        tint = Color.White
+                Icon(
+                    imageVector = icon,
+                    contentDescription = title,
+                    tint = Color.Black
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.Black
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.Black.copy(alpha = 0.8f)
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(Color.White.copy(alpha = 0.9f))
+                        .padding(horizontal = 12.dp, vertical = 4.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = badge,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = colors.onSurface
                     )
                 }
             }
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                    color = Color.White
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.9f)
-                )
-            }
-
-            Surface(
-                shape = RoundedCornerShape(999.dp),
-                color = Color.White.copy(alpha = 0.9f)
-            ) {
-                Text(
-                    text = countLabel,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = colors.onSurface,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                )
-            }
         }
-    }
-}
-
-/* ---------- Section container with back + title ---------- */
-
-@Composable
-private fun SectionContainer(
-    title: String,
-    onBack: () -> Unit,
-    content: @Composable ColumnScope.() -> Unit
-) {
-    val colors = MaterialTheme.colorScheme
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(colors.background)
-            .padding(horizontal = 16.dp, vertical = 16.dp)
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            TextButton(onClick = onBack) {
-                Text("← Back")
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleLarge,
-                color = colors.onBackground
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            content = content
-        )
     }
 }
